@@ -1,0 +1,80 @@
+required packages to install:
+
+ sudo apt update
+ 
+ sudo apt install -y \
+  clang llvm libbpf-dev \
+  linux-headers-$(uname -r) \
+  linux-tools-common \
+  linux-tools-$(uname -r) \
+  bpftool iproute2 \
+  python3 python3-venv python3-pip \
+  iperf3
+
+
+to verify if installed:
+uname -r
+bpftool version
+clang --version
+ip link
+
+
+
+
+
+
+How to run:
+chmod +x scripts/*.sh
+make clean
+make =-> this is compilation should produce xdp_prog.o
+ip link => to find the network interface of your system. check "2:"
+sudo ./scripts/load_xdp.sh -> (use this command whenever you want to start the xdp prog)
+ip link show ens33 => to verify if it is attached. 
+sudo bpftool map show
+sudo bpftool map dump name stats_map -> (this will show the bpf stats map. the map where xdp prog writes to and userspace will read from to give the ml model)
+sudo ./scripts/unload_xdp.sh -> (always make sure to unload once done. DONT FORGET TO RUN THIS)
+
+the above commands dont always have to be executed again and again. 
+once compiled, to start just do this => sudo ./scripts/load_xdp.sh
+once done, to do thus => sudo ./scripts/unload_xdp.sh
+
+
+
+Activate venv for python: 
+- activate the venv => source /home/avii09/Desktop/xdp-ddos/.venv/bin/activate
+- chmod +x userspace/stats_reader.py
+- execute this command to start python script => sudo .venv/bin/python userspace/stats_reader.py
+- the python script is done for reading the stats bpf map and it will calculate the pps and bps and print. 
+
+
+Using iperf for traffic:
+- Since i am using a VM. the VM is my server and my host machine which is windows is my client.
+- that means windows is attacking my VM.
+- i have done this, as windows is an exeternal machine, it will hit the NIC of the VM and thus our xdp prog will work. 
+- install iperf3 in both VM and windows(host machine)
+- in VM open new terminal and execute this => iperf3 -s
+- then in windows shift + right click on the iperf download folder and choose run from powershell.
+- then execute this command in powershell => .\iperf3.exe -c 192.168.1.66 -u -b 50M -t 20
+- NOTE : replace this 192.168.1.66 with your vm Ip address. you can do that by executing: ip addr show ens33
+- NOTE : ens33 is the network interface which is different for different VMS to check what yours is execute: ip link.
+
+
+
+FLOW OF THE PROJECT: (this is exactly how to run the project)
+1. sudo ./scripts/load_xdp.sh
+2. new terminal, in vm => iperf3 -s
+3. in windows (or your host machine) => .\iperf3.exe -c 192.168.1.66 -u -b 50M -t 20
+4. in vm, new terminal, activate venv, => sudo .venv/bin/python userspace/stats_reader.py
+5. observe the traffic. 
+6. UNLOAD THE XDP => sudo ./scripts/unload_xdp.sh
+
+
+
+
+
+Data available for ML: (bhavana)
+The Python script currently produces per-second features:
+Feature	Description
+IP	Source IP
+PPS	Packets per second
+BPS	Bytes per second

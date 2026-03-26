@@ -1,7 +1,7 @@
 # xdp-ddos
 
 In order to run this, ensure 
-1. your data set is stored ni csv format in the xdp-ddos/data folder , if not too (the trained model joblist is already present so no issues)
+1. your data set is stored in csv format in the xdp-ddos/data folder , if not too (the trained model joblist is already present so no issues)
 2. All paths in this code is from my system, so change the path to your relative path before executing
 3. install all necessary dependencies from pip as follows
 pip install pandas numpy scikit-learn matplotlib seaborn

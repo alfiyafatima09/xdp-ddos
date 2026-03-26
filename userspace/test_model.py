@@ -59,8 +59,9 @@ except:
 # Scenario A: Low traffic (Normal)
 # Scenario B: High traffic (DDoS attack)
 test_data = [
-    {"PPS": 10.848104, "BPS": 0.471054845, "Description": "Nx"},
-    {"PPS": 0.471054845, "BPS": 625173.1659, "Description": "x"},
+    # {"PPS": 2398212.2417834, "BPS": 450.48236768954, "Description": "Nx"},
+    # {"PPS": 12.4840166926818, "BPS": 0.469052650303073, "Description": "x"},
+    {"PPS": 1000000, "BPS": 64000000, "Description": "Realistic DNS Flood"}
 ]
 """
  flow packets(pps) flow bytes(bps)     label

@@ -90,12 +90,14 @@ import struct
 import joblib
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 # --- CONFIGURATION ---
 STATS_MAP = "stats_map"
 BLOCK_MAP = "blocklist_map"
 MODEL_PATH = "minimalist_ddos_model.joblib"
 INTERVAL = 1.0 
+LOG_FILE = "blocked_ips.log"  # file where blocked IPs will be saved
 
 # Load the brain
 try:
@@ -110,12 +112,52 @@ prev_stats = {}
 def int_to_ip(ip_int):
     return socket.inet_ntoa(struct.pack("!I", ip_int))
 
+def log_blocked_ip(ip_str):
+    """Append blocked IP with timestamp to the log file."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"{timestamp} | {ip_str}\n"
+    
+    with open(LOG_FILE, "a") as f:
+        f.write(log_entry)
+
+
+# def update_blocklist(ip_int):
+#     ip_bytes = struct.pack("!I", ip_int)
+#     # Each byte becomes a separate argument
+#     ip_hex_args = [f"{b:02x}" for b in ip_bytes]
+
+#     cmd = [
+#         "sudo", "bpftool", "map", "update",
+#         "name", "blocklist_map",
+#         "key", "hex", *ip_hex_args,  # <-- unpack bytes
+#         "value", "01"                 # single-byte value
+#     ]
+    
+#     try:
+#         subprocess.run(cmd, check=True)
+#         print(f"[+] Blocked IP: {socket.inet_ntoa(ip_bytes)}")
+#     except subprocess.CalledProcessError as e:
+#         print(f"[!] Failed to update block_map for IP {socket.inet_ntoa(ip_bytes)}: {e}")
 def update_blocklist(ip_int):
-    """Writes the attacking IP to the XDP blocklist_map."""
-    # Convert IP integer to hex bytes for bpftool
-    ip_hex = " ".join(f"{b:02x}" for b in struct.pack("!I", ip_int))
-    cmd = ["sudo", "bpftool", "map", "update", "name", BLOCK_MAP, "key", "hex", ip_hex, "value", "hex", "01"]
-    subprocess.run(cmd)
+    ip_bytes = struct.pack("!I", ip_int)
+    ip_str = socket.inet_ntoa(ip_bytes)
+    
+    # Each byte becomes a separate argument
+    ip_hex_args = [f"{b:02x}" for b in ip_bytes]
+
+    cmd = [
+        "sudo", "bpftool", "map", "update",
+        "name", "blocklist_map",
+        "key", "hex", *ip_hex_args,  # <-- unpack bytes
+        "value", "01"                 # single-byte value
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True)
+        print(f"[+] Blocked IP: {ip_str}")
+        log_blocked_ip(ip_str)  # <-- call logging function here
+    except subprocess.CalledProcessError as e:
+        print(f"[!] Failed to update block_map for IP {ip_str}: {e}")
 
 def get_map_dump(map_name):
     """Fetches real-time packet/byte counts from the XDP kernel map."""

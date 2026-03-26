@@ -1,2 +1,12 @@
-.venv
+.venv/
 xdp_prog.o
+venv/
+data/
+*.o
+*.log
+__pycache__/
+*.pyc
+.env
+*.env
+*.sqlite3
+.DS_Store

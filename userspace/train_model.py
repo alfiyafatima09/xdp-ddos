@@ -47,5 +47,5 @@ def train_minimalist_model(data_path):
     print("Model saved successfully as minimalist_ddos_model.joblib")
 
 # Path to your DNS dataset
-csv_path = r"C:/Users/megal/Desktop/projec/xdp/xdp-ddos/data/DNS.csv"
+csv_path = r"/home/akshata-yangunde/Desktop/ddos-model/xdp-ddos/data/DrDoS_DNS.csv"
 train_minimalist_model(csv_path)

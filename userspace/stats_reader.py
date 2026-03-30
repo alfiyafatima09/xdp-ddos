@@ -108,6 +108,7 @@ except Exception as e:
     exit(1)
 
 prev_stats = {}
+idle_cycles = 0
 
 def int_to_ip(ip_int):
     return socket.inet_ntoa(struct.pack("!I", ip_int))
@@ -172,6 +173,7 @@ print("-" * 55)
 try:
     while True:
         data = get_map_dump(STATS_MAP)
+        rows_printed = 0
         
         for entry in data:
             # Parse hex data from bpftool JSON
@@ -198,10 +200,19 @@ try:
                     if prediction == 1:
                         print(f"{ip_str:<15} | {pps:>8.0f} | {bps:>10.0f} | [!!] ATTACK")
                         update_blocklist(ip_int)
+                        rows_printed += 1
                     else:
                         print(f"{ip_str:<15} | {pps:>8.0f} | {bps:>10.0f} | NORMAL")
+                        rows_printed += 1
 
             prev_stats[ip_int] = (packets, bytes_total)
+
+        if rows_printed == 0:
+            idle_cycles += 1
+            if idle_cycles % 10 == 0:
+                print("[*] stats_reader alive: waiting for traffic...")
+        else:
+            idle_cycles = 0
             
         time.sleep(INTERVAL)
 

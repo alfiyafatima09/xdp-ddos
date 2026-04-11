@@ -33,7 +33,7 @@ export default function Dashboard({ ws }) {
       </div>
 
       {/* Live Traffic Chart - Full Width, stock-market style */}
-      <TrafficChart data={metricsHistory} status={metrics.status} />
+      <TrafficChart data={metricsHistory} status={metrics.status} metrics={metrics} />
 
       {/* Stats Reader & iPerf Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

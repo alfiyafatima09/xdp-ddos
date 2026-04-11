@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function formatNumber(num) {
   if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M'
@@ -20,27 +20,80 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function TrafficChart({ data, status }) {
-  const isAttack = status === 'UNDER_ATTACK'
-
-  // Current values for the live stat boxes
-  const latest = data.length > 0 ? data[data.length - 1] : { pps: 0, bps: 0 }
-  const prev = data.length > 1 ? data[data.length - 2] : latest
-  const ppsDelta = latest.pps - prev.pps
-  const bpsDelta = latest.bps - prev.bps
+function SingleChart({ data, dataKey, color, gradientId, name, attackColor }) {
+  const allZero = data.length === 0 || data.every(d => (d[dataKey] || 0) === 0)
+  const stroke = attackColor || color
 
   return (
-    <div className={`bg-white rounded-2xl border-2 shadow-sm p-5 h-full transition-colors ${
+    <div style={{ height: 160, position: 'relative' }}>
+      {allZero && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+          <span className="text-xs text-slate-300 italic">Waiting for traffic…</span>
+        </div>
+      )}
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis
+            dataKey="time"
+            tick={{ fill: '#94a3b8', fontSize: 9 }}
+            tickLine={false}
+            axisLine={{ stroke: '#e2e8f0' }}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            domain={[0, 'auto']}
+            tick={{ fill: stroke, fontSize: 9 }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={formatNumber}
+            width={48}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey={dataKey}
+            name={name}
+            stroke={stroke}
+            strokeWidth={2}
+            fill={`url(#${gradientId})`}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+export default function TrafficChart({ data, status, metrics }) {
+  const isAttack = status === 'UNDER_ATTACK'
+
+  const latest = metrics
+    ? { pps: metrics.pps || 0, bps: metrics.bps || 0 }
+    : data.length > 0 ? data[data.length - 1] : { pps: 0, bps: 0 }
+  const prev = data.length > 1 ? data[data.length - 2] : latest
+  const ppsDelta = (latest.pps || 0) - (prev.pps || 0)
+  const bpsDelta = (latest.bps || 0) - (prev.bps || 0)
+
+  return (
+    <div className={`bg-white rounded-2xl border-2 shadow-sm p-5 transition-colors ${
       isAttack ? 'border-red-400 pulse-attack' : 'border-indigo-200'
     }`}>
-      {/* Header row with live stats */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             Live Traffic Monitor
-            {isAttack && <span className="text-red-500 animate-pulse text-sm">SPIKE DETECTED</span>}
+            {isAttack && <span className="text-red-500 animate-pulse text-sm ml-1">SPIKE DETECTED</span>}
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Dual-axis: Packets/sec (left) & Bytes/sec (right) — last 2 minutes</p>
+          <p className="text-xs text-slate-400 mt-0.5">Packets/sec & Bytes/sec — last 2 minutes</p>
         </div>
 
         {/* Live stat pills */}
@@ -74,79 +127,29 @@ export default function TrafficChart({ data, status }) {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gradPPS" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isAttack ? '#ef4444' : '#10b981'} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={isAttack ? '#ef4444' : '#10b981'} stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="gradBPS" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-            <XAxis
-              dataKey="time"
-              tick={{ fill: '#94a3b8', fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-              interval="preserveStartEnd"
-            />
-            {/* Left Y-axis: PPS */}
-            <YAxis
-              yAxisId="pps"
-              orientation="left"
-              tick={{ fill: '#10b981', fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={formatNumber}
-              width={50}
-              label={{ value: 'PPS', position: 'insideTopLeft', fill: '#10b981', fontSize: 11, fontWeight: 600, offset: -5 }}
-            />
-            {/* Right Y-axis: BPS */}
-            <YAxis
-              yAxisId="bps"
-              orientation="right"
-              tick={{ fill: '#8b5cf6', fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={formatNumber}
-              width={55}
-              label={{ value: 'BPS', position: 'insideTopRight', fill: '#8b5cf6', fontSize: 11, fontWeight: 600, offset: -5 }}
-            />
-            <Tooltip content={<CustomTooltip />} />
+      {/* PPS chart */}
+      <div className="mb-3">
+        <p className="text-xs font-semibold text-emerald-600 mb-1">Packets / second (PPS)</p>
+        <SingleChart
+          data={data}
+          dataKey="pps"
+          color="#10b981"
+          gradientId="gradPPS"
+          name="Packets/s"
+          attackColor={isAttack ? '#ef4444' : undefined}
+        />
+      </div>
 
-            {/* BPS area — right axis */}
-            <Area
-              yAxisId="bps"
-              type="monotone"
-              dataKey="bps"
-              name="Bytes/s"
-              stroke="#8b5cf6"
-              strokeWidth={2}
-              fill="url(#gradBPS)"
-              dot={false}
-              animationDuration={300}
-            />
-
-            {/* PPS area — left axis */}
-            <Area
-              yAxisId="pps"
-              type="monotone"
-              dataKey="pps"
-              name="Packets/s"
-              stroke={isAttack ? '#ef4444' : '#10b981'}
-              strokeWidth={2.5}
-              fill="url(#gradPPS)"
-              dot={false}
-              animationDuration={300}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      {/* BPS chart */}
+      <div>
+        <p className="text-xs font-semibold text-violet-600 mb-1">Bytes / second (BPS)</p>
+        <SingleChart
+          data={data}
+          dataKey="bps"
+          color="#8b5cf6"
+          gradientId="gradBPS"
+          name="Bytes/s"
+        />
       </div>
     </div>
   )

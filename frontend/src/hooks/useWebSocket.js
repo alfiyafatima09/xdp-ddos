@@ -45,19 +45,8 @@ export function useWebSocket() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-
-        // WS broadcast shape from backend:
-        // { type, metrics, top_flows, blocked_count, logs, timestamp }
-        if (data.metrics) {
-          setMetrics(data.metrics)
-          pushHistory(data.metrics)
-        }
-
-        if (data.top_flows) {
-          setFlows(data.top_flows)
-        }
-
-        // logs from WS are combined; we still poll REST for split stats/iperf
+        // WS carries flows and status; chart history comes from /api/live-rates
+        if (data.top_flows) setFlows(data.top_flows)
       } catch (e) {
         console.error('WS parse error:', e)
       }
@@ -81,6 +70,34 @@ export function useWebSocket() {
     }
   }, [connect])
 
+  // ── 1-second live-rates poll — authoritative source for chart data ──
+  // Reads /api/live-rates which directly parses the stats_reader log tail.
+  // No WebSocket timing dependency; always reflects the freshest log values.
+  useEffect(() => {
+    let active = true
+
+    const pollRates = async () => {
+      if (!active) return
+      try {
+        const res = await fetch(`${API_BASE}/api/live-rates`).then(r => r.json()).catch(() => null)
+        if (!active || !res) return
+        const now = Date.now() / 1000
+        const m = {
+          pps: res.pps || 0,
+          bps: res.bps || 0,
+          timestamp: now,
+          status: res.status || 'IDLE',
+        }
+        setMetrics(m)
+        pushHistory(m)
+      } catch (e) { /* silent */ }
+    }
+
+    pollRates()
+    const interval = setInterval(pollRates, 1000)
+    return () => { active = false; clearInterval(interval) }
+  }, [pushHistory])
+
   // ── REST polling for data not in WS broadcast ──
   // Polls every 2s: blocked IPs, stats logs, iperf logs
   // Also polls metrics+flows as fallback when WS is disconnected
@@ -100,16 +117,21 @@ export function useWebSocket() {
         if (!active) return
 
         // blocked_ips endpoint returns { blocked_ips: ["ts | ip", ...] }
+        // The log file can contain duplicate entries for the same IP; keep
+        // only uniques, preserving the latest (chronologically last) entry.
         if (blockedRes?.blocked_ips) {
-          const parsed = blockedRes.blocked_ips.map(line => {
+          const uniqueByIp = new Map()
+          blockedRes.blocked_ips.forEach(line => {
             const parts = line.split('|').map(s => s.trim())
-            return {
-              ip_address: parts[1] || parts[0] || 'Unknown',
+            const ip = parts[1] || parts[0] || 'Unknown'
+            if (!ip) return
+            uniqueByIp.set(ip, {
+              ip_address: ip,
               timestamp: parts[0] || '',
               reason: 'DDoS Attack Detected',
-            }
+            })
           })
-          setBlockedIps(parsed)
+          setBlockedIps(Array.from(uniqueByIp.values()))
         }
 
         // stats log: { lines: ["...", ...] }

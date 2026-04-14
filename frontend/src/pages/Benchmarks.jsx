@@ -6,13 +6,6 @@ const figures = [
     border: 'border-indigo-300',
     bg: 'bg-indigo-50',
   },
-  // {
-  //   file: '/benchmarks/03_throughput_scaling.png',
-  //   title: 'Throughput Scaling',
-  //   description: 'Network throughput performance at different bandwidth levels (10M to 1G). XDP operates at wire speed in the kernel, bypassing the network stack entirely.',
-  //   border: 'border-emerald-300',
-  //   bg: 'bg-emerald-50',
-  // },
   {
     file: '/benchmarks/04_cpu_utilization.png',
     title: 'CPU Utilization',

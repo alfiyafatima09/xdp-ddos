@@ -87,7 +87,7 @@ export default function About() {
               className={`rounded-2xl border-2 ${step.color} p-5 transition-all hover:shadow-md hover:scale-[1.01]`}
             >
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">{step.icon}</span>
+                {/* <span className="text-2xl">{step.icon}</span> */}
                 <div>
                   <span className="text-xs font-bold text-slate-400 uppercase">Step {step.step}</span>
                   <h3 className="text-base font-bold text-slate-800">{step.title}</h3>
@@ -112,7 +112,7 @@ export default function About() {
       </div>
 
       {/* BPF Maps */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white rounded-2xl border-2 border-orange-300 p-5">
           <h3 className="text-lg font-bold text-slate-800 mb-3">stats_map (BPF Hash Map)</h3>
           <div className="bg-slate-50 rounded-xl p-4 font-mono text-sm space-y-2">
@@ -155,7 +155,7 @@ export default function About() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* ML Model Details */}
       <div className="bg-white rounded-2xl border-2 border-violet-300 p-6">

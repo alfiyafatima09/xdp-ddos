@@ -55,31 +55,12 @@ The project focuses on improving:
 * psutil
 
 ---
+## System Architecture Diagram
 
-# System Architecture
+<p align="center">
+  <img src="frontend/public/system-arch.png" width="850"/>
+</p>
 
-```text
-Incoming Network Traffic
-            │
-            ▼
-     XDP/eBPF Firewall
-            │
- ┌──────────┴──────────┐
- │                     │
- ▼                     ▼
-Benign Traffic     Suspicious Traffic
- │                     │
- ▼                     ▼
-Forwarded         ML-Based Analysis
-                        │
-                        ▼
-              Attack Detection Engine
-                        │
-                        ▼
-               Drop / Mitigate Packets
-```
-
----
 
 # Project Workflow
 
